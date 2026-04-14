@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // URL base de tu backend
 // Si lo despliegas en Render, cambia esta URL a la de Render
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://ferim-backend.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
