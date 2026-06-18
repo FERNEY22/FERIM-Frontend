@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 // Estado inicial del contexto de autenticación
 const initialState = {
@@ -62,40 +62,42 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  // Función para cargar la info del usuario (usando el token almacenado)
-  const loadUser = async () => {
-  if (localStorage.getItem('token')) {
+  // Rehidrata la sesión decodificando el payload del JWT almacenado.
+  // El token lleva { user: { id, role } } y su expiración (exp), así que no
+  // necesitamos un endpoint extra del backend para restaurar la sesión.
+  const loadUser = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      dispatch({ type: 'AUTH_ERROR' });
+      return;
+    }
     try {
-      const res = await axios.get('/api/auth/user');
-      dispatch({ type: 'USER_LOADED', payload: res.data });
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      // Si el token expiró, cerrar sesión
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        dispatch({ type: 'AUTH_ERROR' });
+        return;
+      }
+      dispatch({ type: 'USER_LOADED', payload: payload.user });
     } catch (err) {
       dispatch({ type: 'AUTH_ERROR' });
     }
-  } else {
-    dispatch({ type: 'AUTH_ERROR' });
-  }
-};
+  };
 
   // Función para iniciar sesión
- const login = async (email, password) => {
-  const config = {
-    headers: {
-      'Content-Type': 'application/json'
+  const login = async (email, password) => {
+    try {
+      // Usa la instancia 'api' (baseURL del backend + header x-auth-token).
+      // El backend ya devuelve { token, user }, así que LOGIN_SUCCESS deja la
+      // sesión lista sin llamadas extra.
+      const res = await api.post('/auth/login', { email, password });
+      dispatch({ type: 'LOGIN_SUCCESS', payload: res.data });
+      return res.data;
+    } catch (err) {
+      dispatch({ type: 'LOGIN_FAIL' });
+      throw err.response?.data?.msg || 'Error al iniciar sesión';
     }
   };
-  
-  const body = JSON.stringify({ email, password });
-  
-  try {
-    const res = await axios.post('/auth/login', body, config);
-    dispatch({ type: 'LOGIN_SUCCESS', payload: res.data });
-    loadUser(); // Cargar usuario después del login
-    return res.data;
-  } catch (err) {
-    dispatch({ type: 'LOGIN_FAIL' });
-    throw err.response.data.msg;
-  }
-};
 
   // Función para cerrar sesión
   const logout = () => {

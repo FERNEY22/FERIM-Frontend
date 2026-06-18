@@ -25,7 +25,7 @@ export default function Register() {
     e.preventDefault();
     try {
       await api.post('/auth/register', formData);
-      alert('Registro exitoso. Ahora puedes iniciar sesión.');
+      alert('✅ Registro exitoso. Te enviamos un correo de confirmación. Ahora puedes iniciar sesión.');
       navigate('/login'); // Redirige a login después del registro
     } catch (error) {
       console.error('Error en el registro:', error);
@@ -103,6 +103,7 @@ export default function Register() {
           >
             <option value="inquilino">Inquilino</option>
             <option value="propietario">Propietario</option>
+            <option value="tecnico">Técnico</option>
           </select>
         </div>
 

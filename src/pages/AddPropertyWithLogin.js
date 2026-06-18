@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import LocationPicker from '../components/LocationPicker';
 
 export default function AddPropertyWithLogin() {
   const [loginData, setLoginData] = useState({
@@ -17,6 +18,7 @@ export default function AddPropertyWithLogin() {
     lng: '',
     lat: ''
   });
+  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -30,6 +32,15 @@ export default function AddPropertyWithLogin() {
   // Manejar cambio en el formulario de propiedad
   const handlePropertyChange = (e) => {
     setPropertyData({ ...propertyData, [e.target.name]: e.target.value });
+  };
+
+  // Actualizar coordenadas al hacer clic/arrastrar en el mapa
+  const handleLocationChange = ({ lat, lng }) => {
+    setPropertyData((prev) => ({
+      ...prev,
+      lat: lat.toFixed(6),
+      lng: lng.toFixed(6),
+    }));
   };
 
   // Función para iniciar sesión
@@ -71,19 +82,23 @@ export default function AddPropertyWithLogin() {
         throw new Error('Coordenadas inválidas');
       }
 
-      const propertyDataToSend = {
-        title: propertyData.title,
-        description: propertyData.description,
-        price: parseFloat(propertyData.price),
-        type: propertyData.type,
-        location: {
-          type: 'Point',
-          coordinates: [lng, lat],
-          address: propertyData.address
-        }
-      };
+      // Se envía como multipart/form-data para poder adjuntar imágenes.
+      // 'location' va como string JSON (el backend lo parsea).
+      const formData = new FormData();
+      formData.append('title', propertyData.title);
+      formData.append('description', propertyData.description);
+      formData.append('price', parseFloat(propertyData.price));
+      formData.append('type', propertyData.type);
+      formData.append('location', JSON.stringify({
+        type: 'Point',
+        coordinates: [lng, lat],
+        address: propertyData.address,
+      }));
+      // Campo 'images' (coincide con upload.array('images', 5) en el backend)
+      images.forEach((file) => formData.append('images', file));
 
-      await api.post('/properties', propertyDataToSend);
+      // No fijar Content-Type: axios pone el boundary de multipart automáticamente.
+      await api.post('/properties', formData);
       alert('✅ Propiedad registrada exitosamente');
       navigate('/mi-cuenta'); // Redirigir a mi cuenta
     } catch (err) {
@@ -203,6 +218,14 @@ export default function AddPropertyWithLogin() {
             />
           </div>
           <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '6px' }}>Ubicación en el mapa:</label>
+            <LocationPicker
+              lat={propertyData.lat}
+              lng={propertyData.lng}
+              onChange={handleLocationChange}
+            />
+          </div>
+          <div style={{ marginBottom: '15px' }}>
             <label>Longitud (lng):</label>
             <input
               type="text"
@@ -225,6 +248,22 @@ export default function AddPropertyWithLogin() {
               placeholder="Ej: 4.6097"
               style={{ width: '100%', padding: '8px', marginTop: '5px' }}
             />
+          </div>
+          <div style={{ marginBottom: '15px' }}>
+            <label>Imágenes (hasta 5, máx 5MB c/u):</label>
+            <input
+              type="file"
+              name="images"
+              accept="image/*"
+              multiple
+              onChange={(e) => setImages(Array.from(e.target.files).slice(0, 5))}
+              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            />
+            {images.length > 0 && (
+              <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                {images.length} imagen(es) seleccionada(s): {images.map((f) => f.name).join(', ')}
+              </p>
+            )}
           </div>
           <button
             type="submit"

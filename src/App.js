@@ -14,15 +14,17 @@ import MiCuenta from './pages/Micuenta';
 // Importa tus componentes
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login'; // si ya lo tienes
-import ReservationForm from './pages/ReservationForm';
 
 import PropertyListByType from './pages/PropertyListByType';
 import AddPropertyWithLogin from './pages/AddPropertyWithLogin';
-import PropertiesByType from './pages/PropertiesByType';
 
-import ReservationDashboard from './pages/ReservationDashboard';
 import MaintenanceForm from './pages/MaintenanceForm';
 import ReservationWithLogin from './pages/ReservationWithLogin';
+import PropertiesMapPage from './pages/PropertiesMapPage';
+import PropertyMap from './components/PropertyMap';
+import PropertyDetail from './pages/PropertyDetail';
+import FloatingWidgets from './components/FloatingWidgets';
+import ChatAdmin from './pages/ChatAdmin';
 
 // Componente para rutas protegidas
 const PrivateRoute = ({ children, ...rest }) => {
@@ -69,6 +71,7 @@ function App() {
         }}>
           <Link to="/" style={{ margin: '0 10px', color: '#2c3e50', textDecoration: 'none' }}>Inicio</Link>
           <Link to="/dashboard" style={{ margin: '0 10px', color: '#2c3e50', textDecoration: 'none' }}>Dashboard</Link>
+          <Link to="/mapa" style={{ margin: '0 10px', color: '#2c3e50', textDecoration: 'none' }}>Mapa</Link>
           <Link to="/login" style={{ margin: '0 10px', color: '#2c3e50', textDecoration: 'none' }}>Login</Link>
           <Link to="/register" style={{ margin: '0 10px', color: '#2c3e50', textDecoration: 'none' }}>Registrar</Link>
           <Link to="/mi-cuenta" style={{ margin: '0 10px', color: '#2c3e50', textDecoration: 'none' }}>Mi Cuenta</Link>
@@ -94,6 +97,19 @@ function App() {
   boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
 }}>
   <h2 style={{ borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>Propiedades disponibles</h2>
+
+  {/* Mini-mapa de ubicaciones */}
+  {properties.length > 0 && (
+    <div style={{ marginBottom: '24px' }}>
+      <PropertyMap properties={properties} height="350px" />
+      <p style={{ textAlign: 'right', margin: '6px 0 0 0' }}>
+        <Link to="/mapa" style={{ color: '#3498db', fontSize: '13px', textDecoration: 'none' }}>
+          Ver mapa completo →
+        </Link>
+      </p>
+    </div>
+  )}
+
   {properties.length === 0 ? (
     <p>Cargando propiedades...</p>
   ) : (
@@ -110,21 +126,29 @@ function App() {
           boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
           transition: 'transform 0.2s'
         }}>
+          {prop.images?.[0]?.url && (
+            <img
+              src={prop.images[0].url}
+              alt={prop.title}
+              style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '4px', marginBottom: '10px' }}
+            />
+          )}
           <h3 style={{ margin: '0 0 10px 0' }}>{prop.title}</h3>
           <p style={{ fontSize: '14px', marginBottom: '10px' }}>{prop.description}</p>
           <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>$ {prop.price.toLocaleString('es-CO')} COP</p>
           <p style={{ fontSize: '12px', color: '#666' }}>Tipo: {prop.type}</p>
-          <button style={{
+          <Link to={`/propiedad/${prop._id}`} style={{
+            display: 'inline-block',
             marginTop: '10px',
             padding: '6px 12px',
             backgroundColor: '#3498db',
             color: 'white',
-            border: 'none',
+            textDecoration: 'none',
             borderRadius: '4px',
             cursor: 'pointer'
           }}>
             Ver detalles
-          </button>
+          </Link>
         </div>
       ))}
     </div>
@@ -296,29 +320,27 @@ function App() {
 
           {/* Dashboard (Acceso Público por ahora) */}
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/mapa" element={<PropertiesMapPage />} />
+          <Route path="/propiedad/:id" element={<PropertyDetail />} />
+          <Route path="/admin/nila" element={<ChatAdmin />} />
           
           <Route path="/add-property" element={<AddPropertyWithLogin />} />
           <Route path="/properties/:type" element={<PropertyListByType />} />
-          <Route path="/properties/:type" element={<PropertiesByType />} />
           <Route path="/solicitar-mantenimiento" element={<MaintenanceForm />} />
+          <Route path="/solicitar-mantenimiento/:propertyId" element={<MaintenanceForm />} />
 
-          {/* Login (opcional) */}
+          {/* Login */}
           <Route path="/login" element={<Login />} />
-            <Route path="/reservar/:propertyId" element={<ReservationForm />} />
-            <Route path="/mi-cuenta" element={<ReservationDashboard />} />
-            <Route path="/reservar/:propertyId" element={<ReservationWithLogin />} />
-
+          <Route path="/reservar/:propertyId" element={<ReservationWithLogin />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Mi cuenta: enruta por rol (inquilino / propietario / técnico) */}
+          <Route path="/mi-cuenta" element={<MiCuenta />} />
           <Route path="/inquilino" element={
             <PrivateRoute>
-            <InquilinoPanel />
+              <InquilinoPanel />
             </PrivateRoute>
-            } />
-          <Route path="/mi-cuenta" element={
-            <PrivateRoute>
-            <MiCuenta />
-            </PrivateRoute>
-            } />
+          } />
 
         </Routes>
 
@@ -333,6 +355,9 @@ function App() {
         }}>
           © 2025 FERIM - Plataforma de Alquiler de Inmuebles en Bogotá
         </footer>
+
+        {/* Burbujas de redes sociales + chat de NILA (en todas las páginas) */}
+        <FloatingWidgets />
       </div>
     </Router>
     </AuthProvider>

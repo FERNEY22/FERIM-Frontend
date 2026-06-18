@@ -11,15 +11,16 @@ const api = axios.create({
 
 // Interceptor para añadir el token JWT a las cabeceras de las solicitudes
 api.interceptors.request.use(
-  (config => {
+  (config) => {
     // Recupera el token del localStorage (o donde lo guardes)
     const token = localStorage.getItem('token');
     if (token) {
-      // Añade el token al header 'x-auth-token' (como lo esperas en el backend)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // El backend (middleware/auth.js) lee el token del header 'x-auth-token'.
+      // Debe ir en la config de ESTA petición, no en axios.defaults.
+      config.headers['x-auth-token'] = token;
     }
     return config;
-  }),
+  },
   (error) => {
     // Si hay un error antes de enviar la solicitud
     return Promise.reject(error);
